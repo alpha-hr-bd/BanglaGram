@@ -1,9 +1,12 @@
 // ==========================================
 // 🇧🇩 BANGLAGRAM
-// Real Firebase Social Platform
+// Firebase Social Platform
+// Stable Version
 // ==========================================
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 import {
   getAuth,
@@ -37,47 +40,27 @@ import {
 // ==========================================
 
 const firebaseConfig = {
-
   apiKey: "AIzaSyBoHOzek_SvrL_OA7BNyPGNL3NBEZz1ppM",
-
   authDomain: "bangla-gram123.firebaseapp.com",
-
-  databaseURL:
-    "https://bangla-gram123-default-rtdb.firebaseio.com",
-
+  databaseURL: "https://bangla-gram123-default-rtdb.firebaseio.com",
   projectId: "bangla-gram123",
-
-  storageBucket:
-    "bangla-gram123.firebasestorage.app",
-
-  messagingSenderId:
-    "506223922726",
-
-  appId:
-    "1:506223922726:web:0cae6cc35330e3b68ba0e7",
-
-  measurementId:
-    "G-3SP9PSJZ82"
-
+  storageBucket: "bangla-gram123.firebasestorage.app",
+  messagingSenderId: "506223922726",
+  appId: "1:506223922726:web:0cae6cc35330e3b68ba0e7",
+  measurementId: "G-3SP9PSJZ82"
 };
 
 
 // ==========================================
-// INITIALIZE FIREBASE
+// INITIALIZE
 // ==========================================
 
 const app = initializeApp(firebaseConfig);
-
 const auth = getAuth(app);
-
 const db = getFirestore(app);
 
-
-// ==========================================
-// CURRENT USER
-// ==========================================
-
 let currentUser = null;
+let authReady = false;
 
 
 // ==========================================
@@ -87,58 +70,53 @@ let currentUser = null;
 onAuthStateChanged(auth, async (user) => {
 
   currentUser = user;
+  authReady = true;
+
+  console.log(
+    user
+      ? "🇧🇩 Logged in: " + user.email
+      : "👤 Not logged in"
+  );
 
   if (user) {
-
-    console.log("Logged in:", user.email);
-
     await createUserProfile(user);
-
-    loadPosts();
-
-  } else {
-
-    console.log("Not logged in");
-
-    loadPosts();
-
   }
+
+  await loadPosts();
 
 });
 
 
 // ==========================================
-// CREATE USER PROFILE
+// USER PROFILE
 // ==========================================
 
 async function createUserProfile(user) {
 
   try {
 
-    const userRef = doc(
-      db,
-      "users",
-      user.uid
-    );
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
 
-    const userSnap = await getDoc(userRef);
+    if (!snap.exists()) {
 
-    if (!userSnap.exists()) {
+      const emailName =
+        user.email
+          ? user.email.split("@")[0]
+          : "user";
 
       await setDoc(userRef, {
 
         uid: user.uid,
 
-        email: user.email,
+        email: user.email || "",
 
         name:
           user.displayName ||
-          user.email.split("@")[0],
+          emailName,
 
         username:
-          user.email
-            .split("@")[0]
-            .toLowerCase(),
+          emailName.toLowerCase(),
 
         bio: "BanglaGram user 🇧🇩",
 
@@ -146,8 +124,7 @@ async function createUserProfile(user) {
 
         following: [],
 
-        createdAt:
-          serverTimestamp()
+        createdAt: serverTimestamp()
 
       });
 
@@ -156,7 +133,7 @@ async function createUserProfile(user) {
   } catch (error) {
 
     console.error(
-      "Profile error:",
+      "User profile error:",
       error
     );
 
@@ -175,6 +152,28 @@ export async function signup(
   name
 ) {
 
+  email = String(email || "").trim();
+  password = String(password || "");
+  name = String(name || "").trim();
+
+  if (!email || !password) {
+
+    alert("Please enter email and password.");
+
+    return false;
+
+  }
+
+  if (password.length < 6) {
+
+    alert(
+      "Password must be at least 6 characters."
+    );
+
+    return false;
+
+  }
+
   try {
 
     const result =
@@ -184,12 +183,16 @@ export async function signup(
         password
       );
 
-    await updateProfile(
-      result.user,
-      {
-        displayName: name
-      }
-    );
+    if (name) {
+
+      await updateProfile(
+        result.user,
+        {
+          displayName: name
+        }
+      );
+
+    }
 
     await createUserProfile(
       result.user
@@ -203,7 +206,10 @@ export async function signup(
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Signup error:",
+      error
+    );
 
     alert(
       getFirebaseError(error)
@@ -225,6 +231,19 @@ export async function login(
   password
 ) {
 
+  email = String(email || "").trim();
+  password = String(password || "");
+
+  if (!email || !password) {
+
+    alert(
+      "Please enter email and password."
+    );
+
+    return false;
+
+  }
+
   try {
 
     await signInWithEmailAndPassword(
@@ -241,7 +260,10 @@ export async function login(
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Login error:",
+      error
+    );
 
     alert(
       getFirebaseError(error)
@@ -270,7 +292,14 @@ export async function logout() {
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Logout error:",
+      error
+    );
+
+    alert(
+      "Logout failed."
+    );
 
   }
 
@@ -278,10 +307,20 @@ export async function logout() {
 
 
 // ==========================================
-// CREATE POST (Updated: Title & Media removed, only caption/text)
+// CREATE POST
 // ==========================================
 
 export async function createPost() {
+
+  if (!authReady) {
+
+    alert(
+      "Please wait a moment and try again."
+    );
+
+    return;
+
+  }
 
   if (!currentUser) {
 
@@ -298,6 +337,20 @@ export async function createPost() {
       "postCaption"
     );
 
+  if (!captionElement) {
+
+    console.error(
+      "postCaption element not found."
+    );
+
+    alert(
+      "Post box is missing from the page."
+    );
+
+    return;
+
+  }
+
   const caption =
     captionElement.value.trim();
 
@@ -311,27 +364,39 @@ export async function createPost() {
 
   }
 
+  if (caption.length > 500) {
+
+    alert(
+      "Post must be 500 characters or less."
+    );
+
+    return;
+
+  }
+
   try {
 
+    const userName =
+      currentUser.displayName ||
+      (
+        currentUser.email
+          ? currentUser.email.split("@")[0]
+          : "BanglaGram User"
+      );
+
     await addDoc(
-      collection(
-        db,
-        "posts"
-      ),
+      collection(db, "posts"),
       {
 
-        caption: caption,
+        caption,
 
         userId:
           currentUser.uid,
 
-        userName:
-          currentUser.displayName ||
-          currentUser.email
-            .split("@")[0],
+        userName,
 
         userEmail:
-          currentUser.email,
+          currentUser.email || "",
 
         likes: [],
 
@@ -345,21 +410,24 @@ export async function createPost() {
 
     captionElement.value = "";
 
+    updateCharacterCount();
+
     alert(
       "Post published! 🎉"
     );
 
     showHome();
 
-    loadPosts();
-
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "CREATE POST ERROR:",
+      error
+    );
 
     alert(
-      "Post failed: " +
-      error.message
+      "Post failed:\n\n" +
+      getFirebaseError(error)
     );
 
   }
@@ -378,8 +446,15 @@ export async function loadPosts() {
       "feed"
     );
 
-  if (!feed) return;
+  if (!feed) {
 
+    console.warn(
+      "Feed element not found."
+    );
+
+    return;
+
+  }
 
   feed.innerHTML = `
     <div class="card">
@@ -387,37 +462,40 @@ export async function loadPosts() {
     </div>
   `;
 
-
   try {
+
+    const postsRef =
+      collection(
+        db,
+        "posts"
+      );
 
     const postsQuery =
       query(
-        collection(
-          db,
-          "posts"
-        ),
+        postsRef,
         orderBy(
           "createdAt",
           "desc"
         )
       );
 
-
     const snapshot =
       await getDocs(
         postsQuery
       );
 
-
     feed.innerHTML = "";
-
 
     if (snapshot.empty) {
 
       feed.innerHTML = `
         <div class="card">
           <h2>No posts yet 👀</h2>
-          <p>Be the first person to post on BanglaGram!</p>
+
+          <p>
+            Be the first person to post
+            on BanglaGram! 🇧🇩
+          </p>
         </div>
       `;
 
@@ -427,19 +505,14 @@ export async function loadPosts() {
 
     }
 
-
     let count = 0;
-
 
     snapshot.forEach(
       (postDoc) => {
 
-        const post =
-          postDoc.data();
-
         renderPost(
           postDoc.id,
-          post
+          postDoc.data()
         );
 
         count++;
@@ -447,25 +520,126 @@ export async function loadPosts() {
       }
     );
 
-
     updatePostCount(
       count
     );
 
-
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "LOAD POSTS ERROR:",
+      error
+    );
 
+    /*
+      Fallback:
+      If orderBy causes an index/timestamp problem,
+      load posts without ordering instead of killing
+      the whole feed.
+    */
 
-    feed.innerHTML = `
-      <div class="card">
-        <h2>Unable to load posts</h2>
-        <p>${escapeHTML(
-          error.message
-        )}</p>
-      </div>
-    `;
+    try {
+
+      const fallbackSnapshot =
+        await getDocs(
+          collection(
+            db,
+            "posts"
+          )
+        );
+
+      feed.innerHTML = "";
+
+      if (fallbackSnapshot.empty) {
+
+        feed.innerHTML = `
+          <div class="card">
+            <h2>No posts yet 👀</h2>
+            <p>
+              Be the first person to post!
+            </p>
+          </div>
+        `;
+
+        updatePostCount(0);
+
+        return;
+
+      }
+
+      const posts = [];
+
+      fallbackSnapshot.forEach(
+        (postDoc) => {
+
+          posts.push({
+            id: postDoc.id,
+            data: postDoc.data()
+          });
+
+        }
+      );
+
+      posts.sort(
+        (a, b) => {
+
+          const aTime =
+            getTimeValue(
+              a.data.createdAt
+            );
+
+          const bTime =
+            getTimeValue(
+              b.data.createdAt
+            );
+
+          return bTime - aTime;
+
+        }
+      );
+
+      posts.forEach(
+        (post) => {
+
+          renderPost(
+            post.id,
+            post.data
+          );
+
+        }
+      );
+
+      updatePostCount(
+        posts.length
+      );
+
+    } catch (fallbackError) {
+
+      console.error(
+        "FALLBACK ERROR:",
+        fallbackError
+      );
+
+      feed.innerHTML = `
+        <div class="card">
+          <h2>Unable to load posts</h2>
+
+          <p>
+            ${escapeHTML(
+              fallbackError.message
+            )}
+          </p>
+
+          <button
+            class="primary"
+            onclick="window.loadPosts()"
+          >
+            🔄 Try Again
+          </button>
+        </div>
+      `;
+
+    }
 
   }
 
@@ -473,7 +647,41 @@ export async function loadPosts() {
 
 
 // ==========================================
-// RENDER POST (Updated: Title & Media removed, displaying only text)
+// TIME HELPER
+// ==========================================
+
+function getTimeValue(
+  timestamp
+) {
+
+  if (!timestamp) return 0;
+
+  if (
+    typeof timestamp.toMillis ===
+    "function"
+  ) {
+
+    return timestamp.toMillis();
+
+  }
+
+  if (
+    timestamp.seconds
+  ) {
+
+    return (
+      timestamp.seconds * 1000
+    );
+
+  }
+
+  return 0;
+
+}
+
+
+// ==========================================
+// RENDER POST
 // ==========================================
 
 function renderPost(
@@ -486,17 +694,38 @@ function renderPost(
       "feed"
     );
 
+  if (!feed) return;
 
   const likes =
-    post.likes || [];
+    Array.isArray(post.likes)
+      ? post.likes
+      : [];
 
+  const comments =
+    Array.isArray(post.comments)
+      ? post.comments
+      : [];
 
   const liked =
-    currentUser &&
-    likes.includes(
-      currentUser.uid
+    currentUser
+      ? likes.includes(
+          currentUser.uid
+        )
+      : false;
+
+  const userName =
+    post.userName ||
+    "BanglaGram User";
+
+  const safeName =
+    escapeHTML(
+      userName
     );
 
+  const safeCaption =
+    escapeHTML(
+      post.caption || ""
+    );
 
   const html = `
 
@@ -514,10 +743,7 @@ function renderPost(
         <div>
 
           <b>
-            ${escapeHTML(
-              post.userName ||
-              "BanglaGram User"
-            )}
+            ${safeName}
           </b>
 
           <small>
@@ -528,47 +754,34 @@ function renderPost(
 
       </div>
 
-
       <p class="caption">
-
-        ${escapeHTML(
-          post.caption ||
-          ""
-        )}
-
+        ${safeCaption}
       </p>
-
 
       <div class="post-actions">
 
         <button
           onclick="window.likePost('${postId}')"
-          class="${
-            liked
-              ? "liked"
-              : ""
-          }"
+          class="${liked ? "liked" : ""}"
         >
 
-          ${
-            liked
-              ? "❤️"
-              : "🤍"
-          }
-
+          ${liked ? "❤️" : "🤍"}
           ${likes.length}
 
         </button>
-
 
         <button
           onclick="window.commentPost('${postId}')"
         >
 
           💬 Comment
+          ${
+            comments.length
+              ? `(${comments.length})`
+              : ""
+          }
 
         </button>
-
 
         <button
           onclick="window.sharePost('${postId}')"
@@ -578,45 +791,29 @@ function renderPost(
 
         </button>
 
-
         ${
           currentUser &&
-          currentUser.uid ===
-            post.userId
-
-          ?
-
-          `
-
-          <button
-            onclick="window.deletePost('${postId}')"
-          >
-
-            🗑️
-
-          </button>
-
-          `
-
-          :
-
-          ""
-
+          currentUser.uid === post.userId
+            ? `
+              <button
+                onclick="window.deletePost('${postId}')"
+              >
+                🗑️
+              </button>
+            `
+            : ""
         }
 
       </div>
-
 
       <div
         id="comments-${postId}"
         class="comments"
       ></div>
 
-
     </article>
 
   `;
-
 
   feed.insertAdjacentHTML(
     "beforeend",
@@ -627,7 +824,7 @@ function renderPost(
 
 
 // ==========================================
-// LIKE POST
+// LIKE
 // ==========================================
 
 export async function likePost(
@@ -644,7 +841,6 @@ export async function likePost(
 
   }
 
-
   try {
 
     const postRef =
@@ -654,23 +850,28 @@ export async function likePost(
         postId
       );
 
-
-    const postSnap =
+    const snapshot =
       await getDoc(
         postRef
       );
 
+    if (!snapshot.exists()) {
 
-    if (!postSnap.exists()) return;
+      alert(
+        "Post no longer exists."
+      );
 
+      return;
 
-    const post =
-      postSnap.data();
+    }
 
+    const data =
+      snapshot.data();
 
     const likes =
-      post.likes || [];
-
+      Array.isArray(data.likes)
+        ? data.likes
+        : [];
 
     if (
       likes.includes(
@@ -681,10 +882,12 @@ export async function likePost(
       await updateDoc(
         postRef,
         {
+
           likes:
             arrayRemove(
               currentUser.uid
             )
+
         }
       );
 
@@ -693,24 +896,29 @@ export async function likePost(
       await updateDoc(
         postRef,
         {
+
           likes:
             arrayUnion(
               currentUser.uid
             )
+
         }
       );
 
     }
 
-
-    loadPosts();
+    await loadPosts();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "LIKE ERROR:",
+      error
+    );
 
     alert(
-      "Like failed."
+      "Like failed:\n" +
+      getFirebaseError(error)
     );
 
   }
@@ -736,16 +944,14 @@ export async function commentPost(
 
   }
 
-
   const text =
     prompt(
       "Write your comment:"
     );
 
-
-  if (!text || !text.trim())
+  if (!text || !text.trim()) {
     return;
-
+  }
 
   try {
 
@@ -756,24 +962,28 @@ export async function commentPost(
         postId
       );
 
-
-    const postSnap =
+    const snapshot =
       await getDoc(
         postRef
       );
 
+    if (!snapshot.exists()) {
 
-    if (!postSnap.exists())
+      alert(
+        "Post no longer exists."
+      );
+
       return;
 
+    }
 
-    const post =
-      postSnap.data();
-
+    const data =
+      snapshot.data();
 
     const comments =
-      post.comments || [];
-
+      Array.isArray(data.comments)
+        ? [...data.comments]
+        : [];
 
     comments.push({
 
@@ -785,8 +995,11 @@ export async function commentPost(
 
       userName:
         currentUser.displayName ||
-        currentUser.email
-          .split("@")[0],
+        (
+          currentUser.email
+            ? currentUser.email.split("@")[0]
+            : "User"
+        ),
 
       text:
         text.trim(),
@@ -796,26 +1009,29 @@ export async function commentPost(
 
     });
 
-
     await updateDoc(
       postRef,
       {
-        comments:
-          comments
+        comments
       }
     );
-
 
     alert(
       "Comment added! 💬"
     );
 
+    await loadPosts();
+
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "COMMENT ERROR:",
+      error
+    );
 
     alert(
-      "Comment failed."
+      "Comment failed:\n" +
+      getFirebaseError(error)
     );
 
   }
@@ -824,51 +1040,81 @@ export async function commentPost(
 
 
 // ==========================================
-// DELETE POST
+// DELETE
 // ==========================================
 
 export async function deletePost(
   postId
 ) {
 
-  if (!currentUser)
-    return;
+  if (!currentUser) return;
 
-
-  const yes =
+  const confirmDelete =
     confirm(
       "Delete this post?"
     );
 
-
-  if (!yes)
-    return;
-
+  if (!confirmDelete) return;
 
   try {
 
-    await deleteDoc(
+    const postRef =
       doc(
         db,
         "posts",
         postId
-      )
-    );
+      );
 
+    const snapshot =
+      await getDoc(
+        postRef
+      );
+
+    if (!snapshot.exists()) {
+
+      alert(
+        "Post already deleted."
+      );
+
+      await loadPosts();
+
+      return;
+
+    }
+
+    if (
+      snapshot.data().userId !==
+      currentUser.uid
+    ) {
+
+      alert(
+        "You can only delete your own post."
+      );
+
+      return;
+
+    }
+
+    await deleteDoc(
+      postRef
+    );
 
     alert(
       "Post deleted."
     );
 
-
-    loadPosts();
+    await loadPosts();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "DELETE ERROR:",
+      error
+    );
 
     alert(
-      "Delete failed."
+      "Delete failed:\n" +
+      getFirebaseError(error)
     );
 
   }
@@ -888,14 +1134,15 @@ export async function sharePost(
     window.location.origin +
     window.location.pathname +
     "?post=" +
-    postId;
+    encodeURIComponent(
+      postId
+    );
 
+  try {
 
-  if (
-    navigator.share
-  ) {
-
-    try {
+    if (
+      navigator.share
+    ) {
 
       await navigator.share({
 
@@ -905,21 +1152,40 @@ export async function sharePost(
         text:
           "Check this post on BanglaGram!",
 
-        url:
-          url
+        url
 
       });
 
-    } catch {}
+      return;
 
-  } else {
+    }
 
-    await navigator.clipboard.writeText(
+    if (
+      navigator.clipboard
+    ) {
+
+      await navigator.clipboard.writeText(
+        url
+      );
+
+      alert(
+        "Post link copied! 🔗"
+      );
+
+      return;
+
+    }
+
+    prompt(
+      "Copy this link:",
       url
     );
 
-    alert(
-      "Post link copied! 🔗"
+  } catch (error) {
+
+    console.log(
+      "Share cancelled:",
+      error
     );
 
   }
@@ -928,39 +1194,34 @@ export async function sharePost(
 
 
 // ==========================================
-// UI
+// SHOW HOME
 // ==========================================
 
 export function showHome() {
 
   document
-    .getElementById(
-      "homePage"
-    )
+    .getElementById("homePage")
     ?.classList
     .remove("hidden");
 
-
   document
-    .getElementById(
-      "createPage"
-    )
+    .getElementById("createPage")
     ?.classList
     .add("hidden");
 
-
   document
-    .getElementById(
-      "profilePage"
-    )
+    .getElementById("profilePage")
     ?.classList
     .add("hidden");
-
 
   loadPosts();
 
 }
 
+
+// ==========================================
+// SHOW CREATE
+// ==========================================
 
 export function showCreate() {
 
@@ -974,57 +1235,73 @@ export function showCreate() {
 
   }
 
-
   document
-    .getElementById(
-      "homePage"
-    )
+    .getElementById("homePage")
     ?.classList
     .add("hidden");
 
-
   document
-    .getElementById(
-      "createPage"
-    )
+    .getElementById("createPage")
     ?.classList
     .remove("hidden");
 
-
   document
-    .getElementById(
-      "profilePage"
-    )
+    .getElementById("profilePage")
     ?.classList
     .add("hidden");
+
+  updateCharacterCount();
 
 }
 
 
+// ==========================================
+// SHOW PROFILE
+// ==========================================
+
 export function showProfile() {
 
   document
-    .getElementById(
-      "homePage"
-    )
+    .getElementById("homePage")
     ?.classList
     .add("hidden");
 
-
   document
-    .getElementById(
-      "createPage"
-    )
+    .getElementById("createPage")
     ?.classList
     .add("hidden");
 
-
   document
-    .getElementById(
-      "profilePage"
-    )
+    .getElementById("profilePage")
     ?.classList
     .remove("hidden");
+
+}
+
+
+// ==========================================
+// CHARACTER COUNTER
+// ==========================================
+
+function updateCharacterCount() {
+
+  const textarea =
+    document.getElementById(
+      "postCaption"
+    );
+
+  const counter =
+    document.getElementById(
+      "charCount"
+    );
+
+  if (
+    !textarea ||
+    !counter
+  ) return;
+
+  counter.textContent =
+    textarea.value.length;
 
 }
 
@@ -1042,7 +1319,6 @@ function updatePostCount(
       "postCount"
     );
 
-
   if (element) {
 
     element.textContent =
@@ -1054,7 +1330,7 @@ function updatePostCount(
 
 
 // ==========================================
-// FIREBASE ERRORS
+// FIREBASE ERROR
 // ==========================================
 
 function getFirebaseError(
@@ -1062,8 +1338,7 @@ function getFirebaseError(
 ) {
 
   const code =
-    error.code || "";
-
+    error?.code || "";
 
   const errors = {
 
@@ -1083,14 +1358,25 @@ function getFirebaseError(
       "Account not found.",
 
     "auth/wrong-password":
-      "Wrong password."
+      "Wrong password.",
+
+    "auth/network-request-failed":
+      "Internet connection problem.",
+
+    "permission-denied":
+      "Firebase permission denied. Check Firestore Security Rules.",
+
+    "failed-precondition":
+      "Firebase database configuration problem.",
+
+    "unavailable":
+      "Firebase is temporarily unavailable."
 
   };
 
-
   return (
     errors[code] ||
-    error.message ||
+    error?.message ||
     "Something went wrong."
   );
 
@@ -1136,6 +1422,34 @@ function escapeHTML(
 
 
 // ==========================================
+// CHARACTER COUNTER EVENT
+// ==========================================
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    const textarea =
+      document.getElementById(
+        "postCaption"
+      );
+
+    if (textarea) {
+
+      textarea.addEventListener(
+        "input",
+        updateCharacterCount
+      );
+
+      updateCharacterCount();
+
+    }
+
+  }
+);
+
+
+// ==========================================
 // GLOBAL FUNCTIONS
 // ==========================================
 
@@ -1174,3 +1488,12 @@ window.logout =
 
 window.loadPosts =
   loadPosts;
+
+
+// ==========================================
+// READY
+// ==========================================
+
+console.log(
+  "🇧🇩 BanglaGram app.js loaded successfully."
+);
