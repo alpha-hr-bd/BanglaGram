@@ -1,34 +1,499 @@
-<section id="createPage" class="page hidden">
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <div class="card create-post">
+  <title>BanglaGram 🇧🇩</title>
 
-    <div class="create-header">
-      <div class="avatar-small">🇧🇩</div>
+  <meta
+    name="description"
+    content="BanglaGram - A simple social platform for Bangladesh."
+  >
 
-      <div>
-        <b>Create a post</b>
-        <small>Share something with BanglaGram</small>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <!-- ==============================
+       NAVBAR
+  =============================== -->
+
+  <header class="navbar">
+
+    <div class="nav-inner">
+
+      <button
+        class="brand"
+        type="button"
+        onclick="window.showHome()"
+      >
+        <span class="brand-flag">🇧🇩</span>
+        <span>
+          <strong>BanglaGram</strong>
+          <small>Connect Bangladesh</small>
+        </span>
+      </button>
+
+      <nav class="nav-links">
+
+        <button
+          type="button"
+          onclick="window.showHome()"
+        >
+          🏠 Home
+        </button>
+
+        <button
+          type="button"
+          onclick="window.showCreate()"
+        >
+          ➕ Create
+        </button>
+
+        <button
+          type="button"
+          onclick="window.showProfile()"
+        >
+          👤 Profile
+        </button>
+
+      </nav>
+
+      <div class="nav-auth">
+
+        <button
+          id="loginNavBtn"
+          class="outline-btn"
+          type="button"
+          onclick="window.openAuth('login')"
+        >
+          Login
+        </button>
+
+        <button
+          id="signupNavBtn"
+          class="primary small-btn"
+          type="button"
+          onclick="window.openAuth('signup')"
+        >
+          Join
+        </button>
+
+        <button
+          id="logoutNavBtn"
+          class="danger-btn hidden"
+          type="button"
+          onclick="window.logout()"
+        >
+          Logout
+        </button>
+
       </div>
+
     </div>
 
-    <textarea
-      id="postCaption"
-      class="post-textarea"
-      placeholder="What's happening? 🇧🇩"
-      maxlength="500"
-    ></textarea>
+  </header>
 
-    <div class="char-count">
-      <span id="charCount">0</span>/500
-    </div>
 
-    <button
-      class="primary"
-      onclick="createPost()"
+  <!-- ==============================
+       MAIN
+  =============================== -->
+
+  <main class="container">
+
+    <!-- HOME -->
+
+    <section
+      id="homePage"
+      class="page"
     >
-      🚀 Post
-    </button>
+
+      <div class="hero">
+
+        <div>
+
+          <span class="eyebrow">
+            🇧🇩 MADE FOR BANGLADESH
+          </span>
+
+          <h1>
+            Welcome to
+            <span>BanglaGram</span>
+          </h1>
+
+          <p>
+            Share your thoughts, connect with people
+            and be part of a simple Bangladeshi social community.
+          </p>
+
+          <div class="hero-actions">
+
+            <button
+              class="primary"
+              type="button"
+              onclick="window.showCreate()"
+            >
+              ✍️ Create a Post
+            </button>
+
+            <button
+              class="outline-btn"
+              type="button"
+              onclick="window.scrollToFeed()"
+            >
+              Explore Feed ↓
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="hero-card">
+
+          <div class="hero-icon">
+            🇧🇩
+          </div>
+
+          <h3>BanglaGram</h3>
+
+          <p>
+            A social space built with Firebase.
+          </p>
+
+          <div class="mini-stats">
+
+            <div>
+              <strong id="postCount">0</strong>
+              <span>Posts</span>
+            </div>
+
+            <div>
+              <strong>🇧🇩</strong>
+              <span>Bangladesh</span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- FEED -->
+
+      <div
+        id="feedSection"
+        class="feed-section"
+      >
+
+        <div class="section-heading">
+
+          <div>
+            <span class="eyebrow">
+              COMMUNITY
+            </span>
+
+            <h2>Latest Posts</h2>
+          </div>
+
+          <button
+            class="refresh-btn"
+            type="button"
+            onclick="window.loadPosts()"
+          >
+            🔄 Refresh
+          </button>
+
+        </div>
+
+        <div id="feed">
+
+          <div class="card loading-card">
+            Loading BanglaGram posts... ⏳
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- CREATE -->
+
+    <section
+      id="createPage"
+      class="page hidden"
+    >
+
+      <div class="page-title">
+
+        <span class="eyebrow">
+          CREATE
+        </span>
+
+        <h1>Create a Post ✍️</h1>
+
+        <p>
+          Share something with the BanglaGram community.
+        </p>
+
+      </div>
+
+      <div class="card create-post">
+
+        <div class="create-header">
+
+          <div class="avatar-small">
+            🇧🇩
+          </div>
+
+          <div>
+            <b id="createUserName">
+              BanglaGram User
+            </b>
+
+            <small>
+              Share something with BanglaGram
+            </small>
+          </div>
+
+        </div>
+
+        <textarea
+          id="postCaption"
+          class="post-textarea"
+          placeholder="What's happening? 🇧🇩"
+          maxlength="500"
+        ></textarea>
+
+        <div class="char-count">
+          <span id="charCount">0</span>/500
+        </div>
+
+        <button
+          class="primary post-submit"
+          type="button"
+          onclick="window.createPost()"
+        >
+          🚀 Publish Post
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- PROFILE -->
+
+    <section
+      id="profilePage"
+      class="page hidden"
+    >
+
+      <div class="page-title">
+
+        <span class="eyebrow">
+          PROFILE
+        </span>
+
+        <h1>Your Profile 👤</h1>
+
+      </div>
+
+      <div class="profile-card card">
+
+        <div class="profile-avatar">
+          🇧🇩
+        </div>
+
+        <div class="profile-info">
+
+          <h2 id="profileName">
+            Guest User
+          </h2>
+
+          <p id="profileEmail">
+            Login to see your profile.
+          </p>
+
+          <p id="profileBio">
+            Welcome to BanglaGram 🇧🇩
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ==============================
+       AUTH MODAL
+  =============================== -->
+
+  <div
+    id="authModal"
+    class="modal hidden"
+  >
+
+    <div
+      class="modal-overlay"
+      onclick="window.closeAuth()"
+    ></div>
+
+    <div class="auth-box">
+
+      <button
+        class="modal-close"
+        type="button"
+        onclick="window.closeAuth()"
+      >
+        ×
+      </button>
+
+      <div class="auth-logo">
+        🇧🇩
+      </div>
+
+      <h2 id="authTitle">
+        Welcome Back
+      </h2>
+
+      <p id="authSubtitle">
+        Login to continue to BanglaGram.
+      </p>
+
+
+      <!-- SIGNUP NAME -->
+
+      <div
+        id="nameField"
+        class="form-group hidden"
+      >
+
+        <label for="authName">
+          Name
+        </label>
+
+        <input
+          id="authName"
+          type="text"
+          placeholder="Your name"
+          maxlength="50"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="authEmail">
+          Email
+        </label>
+
+        <input
+          id="authEmail"
+          type="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="authPassword">
+          Password
+        </label>
+
+        <input
+          id="authPassword"
+          type="password"
+          placeholder="Minimum 6 characters"
+          autocomplete="current-password"
+        >
+
+      </div>
+
+
+      <button
+        id="authSubmitBtn"
+        class="primary auth-submit"
+        type="button"
+        onclick="window.submitAuth()"
+      >
+        Login
+      </button>
+
+
+      <p class="auth-switch">
+
+        <span id="authSwitchText">
+          Don't have an account?
+        </span>
+
+        <button
+          type="button"
+          onclick="window.toggleAuthMode()"
+          id="authSwitchBtn"
+        >
+          Sign up
+        </button>
+
+      </p>
+
+    </div>
 
   </div>
 
-</section>
+
+  <!-- ==============================
+       TOAST
+  =============================== -->
+
+  <div
+    id="toast"
+    class="toast"
+  ></div>
+
+
+  <!-- ==============================
+       FOOTER
+  =============================== -->
+
+  <footer>
+
+    <div class="footer-inner">
+
+      <strong>
+        🇧🇩 BanglaGram
+      </strong>
+
+      <span>
+        Built for the Bangladeshi community.
+      </span>
+
+      <span>
+        © 2026 BanglaGram
+      </span>
+
+    </div>
+
+  </footer>
+
+
+  <script
+    type="module"
+    src="./app.js"
+  ></script>
+
+</body>
+</html>
+```
