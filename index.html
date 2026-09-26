@@ -1,1 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>BanglaGram 🇧🇩</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script type="module" src="app.js"></script>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div class="logo">Bangla<span>Gram</span> 🇧🇩</div>
+
+    <div class="top-actions">
+      <button onclick="showHome()">🏠</button>
+      <button onclick="showCreate()">＋</button>
+      <button onclick="showProfile()">👤</button>
+    </div>
+  </header>
+
+
+  <main>
+
+    <!-- HOME -->
+    <section id="homePage">
+
+      <div class="welcome">
+        <h1>Welcome to BanglaGram 🇧🇩</h1>
+        <p>Share your moments with Bangladesh.</p>
+      </div>
+
+      <div id="feed"></div>
+
+    </section>
+
+
+    <!-- CREATE POST -->
+    <section id="createPage" class="page hidden">
+
+      <div class="card">
+
+        <h2>Create Post ✨</h2>
+
+        <input
+          id="postTitle"
+          type="text"
+          placeholder="Post title"
+        >
+
+        <textarea
+          id="postCaption"
+          placeholder="Write something..."
+        ></textarea>
+
+        <input
+          id="mediaUrl"
+          type="url"
+          placeholder="Image or video URL"
+        >
+
+        <button class="primary" onclick="createPost()">
+          Publish Post 🚀
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- PROFILE -->
+    <section id="profilePage" class="page hidden">
+
+      <div class="profile card">
+
+        <div class="avatar">🇧🇩</div>
+
+        <h2 id="profileName">BanglaGram User</h2>
+
+        <p>BanglaGram member</p>
+
+        <div class="stats">
+          <div>
+            <b id="postCount">0</b>
+            <small>Posts</small>
+          </div>
+
+          <div>
+            <b>0</b>
+            <small>Followers</small>
+          </div>
+
+          <div>
+            <b>0</b>
+            <small>Following</small>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <nav class="bottom-nav">
+
+    <button onclick="showHome()">
+      🏠
+      <small>Home</small>
+    </button>
+
+    <button onclick="showCreate()">
+      ➕
+      <small>Create</small>
+    </button>
+
+    <button onclick="showProfile()">
+      👤
+      <small>Profile</small>
+    </button>
+
+  </nav>
+
+</body>
+</html>
