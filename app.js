@@ -278,7 +278,7 @@ export async function logout() {
 
 
 // ==========================================
-// CREATE POST
+// CREATE POST (Updated: Title & Media removed, only caption/text)
 // ==========================================
 
 export async function createPost() {
@@ -293,43 +293,23 @@ export async function createPost() {
 
   }
 
-
-  const titleElement =
-    document.getElementById(
-      "postTitle"
-    );
-
   const captionElement =
     document.getElementById(
       "postCaption"
     );
 
-  const mediaElement =
-    document.getElementById(
-      "mediaUrl"
-    );
-
-
-  const title =
-    titleElement.value.trim();
-
   const caption =
     captionElement.value.trim();
 
-  const media =
-    mediaElement.value.trim();
-
-
-  if (!title) {
+  if (!caption) {
 
     alert(
-      "Please enter a title."
+      "Please write something for your post."
     );
 
     return;
 
   }
-
 
   try {
 
@@ -340,11 +320,7 @@ export async function createPost() {
       ),
       {
 
-        title: title,
-
         caption: caption,
-
-        media: media,
 
         userId:
           currentUser.uid,
@@ -367,18 +343,11 @@ export async function createPost() {
       }
     );
 
-
-    titleElement.value = "";
-
     captionElement.value = "";
-
-    mediaElement.value = "";
-
 
     alert(
       "Post published! 🎉"
     );
-
 
     showHome();
 
@@ -504,7 +473,7 @@ export async function loadPosts() {
 
 
 // ==========================================
-// RENDER POST
+// RENDER POST (Updated: Title & Media removed, displaying only text)
 // ==========================================
 
 function renderPost(
@@ -527,68 +496,6 @@ function renderPost(
     likes.includes(
       currentUser.uid
     );
-
-
-  let mediaHTML = "";
-
-
-  if (post.media) {
-
-    const media =
-      post.media.toLowerCase();
-
-
-    if (
-
-      media.includes(
-        ".mp4"
-      ) ||
-
-      media.includes(
-        ".webm"
-      ) ||
-
-      media.includes(
-        ".mov"
-      )
-
-    ) {
-
-      mediaHTML = `
-
-        <video
-          class="post-media"
-          controls
-          preload="metadata"
-        >
-
-          <source
-            src="${escapeHTML(
-              post.media
-            )}"
-          >
-
-        </video>
-
-      `;
-
-    } else {
-
-      mediaHTML = `
-
-        <img
-          class="post-media"
-          src="${escapeHTML(
-            post.media
-          )}"
-          onerror="this.style.display='none'"
-        >
-
-      `;
-
-    }
-
-  }
 
 
   const html = `
@@ -620,19 +527,6 @@ function renderPost(
         </div>
 
       </div>
-
-
-      ${mediaHTML}
-
-
-      <h2 class="post-title">
-
-        ${escapeHTML(
-          post.title ||
-          ""
-        )}
-
-      </h2>
 
 
       <p class="caption">
