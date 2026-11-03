@@ -1,282 +1,205 @@
-import { auth } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 import { initAuth } from "./auth.js";
-import { createPost, loadPosts } from "./posts.js";
-import { getMyProfile, updateMyProfile } from "./profile.js";
-import {
-  searchUsers, followUser, unfollowUser, isFollowing,
-  getFollowers, getFollowing
-} from "./social.js";
-import { getNotifications } from "./notifications.js";
-import {
-  collection, query, where, orderBy, limit, getDocs
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { db } from "./firebase.js";
+import { createPost, loadPosts, uploadMedia, loadUserPosts, showSinglePost, setPostTarget } from "./posts.js";
+import { getMyProfile, getProfile, updateMyProfile } from "./profile.js";
+import { getAllUsers, searchUsers, followUser, unfollowUser, isFollowing, getFollowers, getFollowing } from "./social.js";
+import { getNotifications, markNotificationRead } from "./notifications.js";
+import { collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const $ = (id) => document.getElementById(id);
-let currentProfile = null;
-let toastTimer = null;
+const $ = id => document.getElementById(id);
+let myProfile = null, viewedUid = null, previousView = "home", selectedFile = null, composerKind = "post";
+let toastTimer, searchTimer;
 
 function toast(message) {
-  const box = $("toast");
-  if (!box) return;
-  box.textContent = message;
-  box.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => box.classList.remove("show"), 2600);
+  const el = $("toast"); el.textContent = message; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
 }
-
-function avatarUrl(person) {
-  if (person?.photoURL) return person.photoURL;
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(person?.name || "BG")}&background=eaf7ff&color=168bd2&bold=true`;
+function avatar(person) {
+  return person?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(person?.name || "BG")}&background=eaf7ff&color=168bd2&bold=true`;
 }
-
-function safeImage(img, person) {
-  img.src = avatarUrl(person);
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = "https://ui-avatars.com/api/?name=BG&background=eaf7ff&color=168bd2";
-  };
+function setAvatar(el, person) {
+  el.src = avatar(person); el.onerror = () => { el.onerror = null; el.src = avatar({name:"BG"}); };
 }
-
 function showView(view) {
-  ["home", "explore", "profile", "notifications"].forEach((name) => {
-    $(`${name}View`).hidden = name !== view;
+  ["home","explore","profile","connections","notifications"].forEach(v => $(`${v}View`).hidden = v !== view);
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  if (view === "explore") loadExplore($("userSearch").value);
+  if (view === "profile" && auth.currentUser) openProfile(auth.currentUser.uid, false);
+  if (view === "notifications") loadNotices();
+}
+async function loadExplore(term = "") {
+  const box = $("peopleResults"); box.innerHTML = '<div class="empty-state">Loading members...</div>';
+  try {
+    const people = term.trim() ? await searchUsers(term) : await getAllUsers();
+    const visible = people.filter(p => p.id !== auth.currentUser.uid);
+    box.innerHTML = "";
+    if (!visible.length) { box.innerHTML = '<div class="empty-state">No members found. Create another account or try a different search.</div>'; return; }
+    for (const p of visible) box.appendChild(await personCard(p));
+  } catch (e) {
+    console.error(e); box.innerHTML = '<div class="empty-state">Could not load members. Check Firestore Rules and the users collection.</div>';
+  }
+}
+async function personCard(person) {
+  const card = document.createElement("article"); card.className = "person-card";
+  const open = document.createElement("button"); open.className = "person-open";
+  const img = document.createElement("img"); setAvatar(img, person);
+  const name = document.createElement("h3"); name.textContent = person.name || "BanglaGram member";
+  open.append(img, name); open.addEventListener("click", () => openProfile(person.id));
+  const bio = document.createElement("p"); bio.textContent = person.bio || "BanglaGram member";
+  const btn = document.createElement("button");
+  const following = await isFollowing(person.id);
+  btn.className = following ? "soft-btn" : "primary-btn"; btn.textContent = following ? "Following ✓" : "＋ Follow";
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      if (await isFollowing(person.id)) { await unfollowUser(person.id); btn.textContent = "＋ Follow"; btn.className = "primary-btn"; toast("Unfollowed."); }
+      else { await followUser(person.id); btn.textContent = "Following ✓"; btn.className = "soft-btn"; toast("You are now following " + (person.name || "this member")); }
+      if (viewedUid === auth.currentUser.uid) await refreshProfileCounts();
+    } catch (e) { toast(e.message); } finally { btn.disabled = false; }
   });
-  document.querySelectorAll(".nav-item").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === view);
-  });
-  if (view === "profile") loadMyProfile();
-  if (view === "notifications") loadMyNotifications();
+  card.append(open, bio, btn); return card;
 }
-
-async function loadMyProfile() {
+async function openProfile(uid, remember = true) {
+  if (!uid) return;
   try {
-    const profile = await getMyProfile();
-    currentProfile = profile;
-    $("profileName").textContent = profile.name || "BanglaGram User";
-    $("profileBio").textContent = profile.bio || "Add a short bio about yourself.";
-    $("editName").value = profile.name || "";
-    $("editBio").value = profile.bio || "";
-    $("editPhoto").value = profile.photoURL || "";
-    safeImage($("profileAvatar"), profile);
-    safeImage($("sideAvatar"), profile);
-    $("sideName").textContent = profile.name || "BanglaGram User";
-    $("sideHandle").textContent = "@" + (profile.name || "member").toLowerCase().replace(/[^a-z0-9]+/g, "");
-    const [followers, following] = await Promise.all([
-      getFollowers(auth.currentUser.uid), getFollowing(auth.currentUser.uid)
-    ]);
-    $("followersCount").textContent = followers.length;
-    $("followingCount").textContent = following.length;
-    await loadMyPosts();
-  } catch (error) {
-    console.error(error);
-    $("profileMessage").textContent = error.message;
-  }
+    if (remember && !$("profileView").hidden) previousView = "profile";
+    else if (remember) previousView = document.querySelector(".view-section:not([hidden])")?.id.replace("View","") || "home";
+    const p = await getProfile(uid); viewedUid = uid;
+    ["home","explore","profile","connections","notifications"].forEach(v => $(`${v}View`).hidden = v !== "profile");
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === "profile" && uid === auth.currentUser.uid));
+    $("profileName").textContent = p.name || "BanglaGram member";
+    $("profileHandle").textContent = "@" + (p.name || "member").toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,24);
+    $("profileBio").textContent = p.bio || "No bio added yet.";
+    setAvatar($("profileAvatar"), p);
+    const mine = uid === auth.currentUser.uid;
+    $("profileEdit").hidden = !mine;
+    $("profileFollowBtn").hidden = mine;
+    $("profileFollowBtn").textContent = await isFollowing(uid) ? "Following ✓" : "＋ Follow";
+    $("profileFollowBtn").className = (await isFollowing(uid)) ? "soft-btn follow-profile-btn" : "primary-btn follow-profile-btn";
+    $("editName").value = p.name || ""; $("editBio").value = p.bio || ""; $("editPhoto").value = p.photoURL || "";
+    $("profilePostsTitle").textContent = mine ? "Your posts" : `${p.name || "Member"}'s posts`;
+    await refreshProfileCounts();
+    await loadUserPosts(uid, $("profilePosts"));
+  } catch (e) { console.error(e); toast(e.message || "Could not open profile."); }
 }
-
-async function loadMyPosts() {
-  const target = $("myPosts");
-  target.innerHTML = '<div class="empty-state">Loading your posts...</div>';
-  try {
-    const q = query(collection(db, "posts"), where("uid", "==", auth.currentUser.uid), orderBy("createdAt", "desc"), limit(20));
-    const snap = await getDocs(q);
-    target.innerHTML = "";
-    if (snap.empty) {
-      target.innerHTML = '<div class="empty-state">You have not shared a post yet.</div>';
-      return;
-    }
-    snap.forEach((item) => {
-      const data = item.data();
-      const card = document.createElement("article");
-      card.className = "post-card";
-      const heading = document.createElement("h3");
-      heading.textContent = data.author || currentProfile?.name || "You";
-      const body = document.createElement("p");
-      body.textContent = data.text || "";
-      card.append(heading, body);
-      if (data.imageUrl) {
-        const image = document.createElement("img");
-        image.className = "post-image";
-        image.src = data.imageUrl;
-        image.alt = "Post image";
-        image.loading = "lazy";
-        image.onerror = () => image.remove();
-        card.appendChild(image);
-      }
-      target.appendChild(card);
-    });
-  } catch (error) {
-    console.error(error);
-    target.innerHTML = '<div class="empty-state">Could not load your posts. Check Firestore indexes if requested.</div>';
-  }
+async function refreshProfileCounts() {
+  if (!viewedUid) return;
+  const [followers, following] = await Promise.all([getFollowers(viewedUid), getFollowing(viewedUid)]);
+  $("followersCount").textContent = followers.length; $("followingCount").textContent = following.length;
 }
-
-async function runUserSearch(term) {
-  const result = $("peopleResults");
-  if (!term.trim()) {
-    result.innerHTML = '<div class="empty-state">Start typing a name to discover people.</div>';
-    return;
-  }
-  result.innerHTML = '<div class="empty-state">Searching people...</div>';
-  try {
-    const users = await searchUsers(term);
-    const filtered = users.filter((person) => person.id !== auth.currentUser.uid);
-    result.innerHTML = "";
-    if (!filtered.length) {
-      result.innerHTML = '<div class="empty-state">No members found. Try another name.</div>';
-      return;
-    }
-    for (const person of filtered) {
-      const following = await isFollowing(person.id);
-      const card = document.createElement("article");
-      card.className = "person-card";
-      const image = document.createElement("img");
-      safeImage(image, person);
-      const name = document.createElement("h3");
-      name.textContent = person.name || "BanglaGram User";
-      const bio = document.createElement("p");
-      bio.textContent = person.bio || "BanglaGram member";
-      const button = document.createElement("button");
-      button.className = following ? "soft-btn" : "primary-btn";
-      button.textContent = following ? "Following ✓" : "＋ Follow";
-      button.addEventListener("click", async () => {
-        button.disabled = true;
-        try {
-          if (await isFollowing(person.id)) {
-            await unfollowUser(person.id);
-            button.textContent = "＋ Follow";
-            button.className = "primary-btn";
-            toast("You unfollowed " + (person.name || "this member"));
-          } else {
-            await followUser(person.id);
-            button.textContent = "Following ✓";
-            button.className = "soft-btn";
-            toast("You are now following " + (person.name || "this member"));
-          }
-        } catch (error) {
-          toast(error.message);
-        } finally {
-          button.disabled = false;
-        }
-      });
-      card.append(image, name, bio, button);
-      result.appendChild(card);
-    }
-  } catch (error) {
-    console.error(error);
-    result.innerHTML = '<div class="empty-state">Search failed. Please try again.</div>';
-  }
-}
-
 async function showConnections(type) {
+  if (!viewedUid) return;
+  previousView = "profile";
+  $("profileView").hidden = true; $("connectionsView").hidden = false;
+  $("connectionsTitle").textContent = type === "followers" ? "Followers" : "Following";
+  const box = $("connectionsList"); box.innerHTML = '<div class="empty-state">Loading...</div>';
   try {
-    const rows = type === "followers"
-      ? await getFollowers(auth.currentUser.uid)
-      : await getFollowing(auth.currentUser.uid);
-    const names = [];
+    const rows = type === "followers" ? await getFollowers(viewedUid) : await getFollowing(viewedUid);
+    const people = [];
     for (const row of rows) {
       const uid = type === "followers" ? row.followerUid : row.followingUid;
-      const snap = await getDocs(query(collection(db, "users"), where("uid", "==", uid), limit(1)));
-      if (!snap.empty) names.push(snap.docs[0].data().name || "BanglaGram User");
+      const snap = await getDocs(query(collection(db,"users"), where("uid","==",uid), limit(1)));
+      if (!snap.empty) people.push({id:snap.docs[0].id,...snap.docs[0].data()});
     }
-    alert((type === "followers" ? "Followers" : "Following") + " (" + names.length + ")\n\n" + (names.join("\n") || "No members yet."));
-  } catch (error) {
-    toast(error.message);
-  }
+    box.innerHTML = "";
+    if (!people.length) { box.innerHTML = '<div class="empty-state">No members here yet.</div>'; return; }
+    for (const p of people) box.appendChild(await personCard(p));
+  } catch (e) { box.innerHTML = '<div class="empty-state">Could not load this list.</div>'; console.error(e); }
 }
-
-async function loadMyNotifications() {
-  const list = $("notificationList");
-  list.innerHTML = '<div class="empty-state">Loading notifications...</div>';
+async function loadNotices() {
+  const box = $("notificationList"); box.innerHTML = '<div class="empty-state">Loading notifications...</div>';
   try {
-    const notifications = await getNotifications();
-    list.innerHTML = "";
-    if (!notifications.length) {
-      list.innerHTML = '<div class="empty-state">No notifications yet. Follow people and share posts to get started.</div>';
-      return;
-    }
-    notifications.forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "notification-item";
-      const icon = document.createElement("span");
-      icon.className = "notification-icon";
-      icon.textContent = item.type === "follow" ? "＋" : "♡";
-      const text = document.createElement("p");
-      text.textContent = item.message || "You have a new update.";
-      const time = document.createElement("small");
-      time.textContent = item.read ? "Seen" : "New";
-      const wrap = document.createElement("div");
-      wrap.append(text, time);
-      row.append(icon, wrap);
-      list.appendChild(row);
+    const items = await getNotifications(); box.innerHTML = "";
+    const unread = items.filter(n => !n.read).length;
+    $("notificationBadge").hidden = unread === 0; $("notificationBadge").textContent = unread > 9 ? "9+" : unread;
+    if (!items.length) { box.innerHTML = '<div class="empty-state">No notifications yet. Likes, comments and follows will appear here.</div>'; return; }
+    items.forEach(n => {
+      const row = document.createElement("div"); row.className = "notification-item" + (!n.read ? " unread" : "");
+      const icon = document.createElement("span"); icon.className = "notification-icon"; icon.textContent = n.type === "like" ? "♥" : n.type === "comment" ? "💬" : "＋";
+      const wrap = document.createElement("span"); wrap.style.flex = "1";
+      const msg = document.createElement("p"); msg.textContent = n.message || "You have a new update.";
+      const state = document.createElement("small"); state.textContent = n.read ? "Seen" : "New"; wrap.append(msg,state); row.append(icon,wrap);
+      const senderBtn = document.createElement("button"); senderBtn.className = "soft-btn"; senderBtn.textContent = "Profile";
+      senderBtn.addEventListener("click", async () => { try { if (!n.read) await markNotificationRead(n.id); await openProfile(n.targetUid || n.senderUid); } catch(e) { toast(e.message); } });
+      row.appendChild(senderBtn);
+      if (n.postId) {
+        const postBtn = document.createElement("button"); postBtn.className = "primary-btn"; postBtn.textContent = "View post";
+        postBtn.addEventListener("click", async () => {
+          try { if (!n.read) await markNotificationRead(n.id); showView("home"); await showSinglePost(n.postId, $("feed")); }
+          catch(e) { toast(e.message); }
+        });
+        row.appendChild(postBtn);
+      }
+      box.appendChild(row);
     });
-  } catch (error) {
-    console.error(error);
-    list.innerHTML = '<div class="empty-state">Could not load notifications.</div>';
-  }
+    $("notificationBadge").hidden = unread === 0; $("notificationBadge").textContent = unread > 9 ? "9+" : unread;
+  } catch(e) { console.error(e); box.innerHTML = '<div class="empty-state">Could not load notifications. Check Firestore index/rules.</div>'; }
 }
-
-initAuth(async (user) => {
-  $("welcomeName").textContent = "Welcome back, " + (user.displayName || "friend") + "!";
+function previewSelected() {
+  const box = $("mediaPreview"); box.innerHTML = ""; box.hidden = !selectedFile;
+  if (!selectedFile) return;
+  const url = URL.createObjectURL(selectedFile);
+  const media = document.createElement(selectedFile.type.startsWith("video/") ? "video" : "img");
+  media.src = url; if (media.tagName === "VIDEO") { media.controls = true; media.muted = true; }
+  box.appendChild(media); $("uploadLabel").textContent = selectedFile.name;
+}
+initAuth(async user => {
   try {
-    currentProfile = await getMyProfile();
-    $("welcomeName").textContent = "Welcome back, " + (currentProfile.name || user.displayName || "friend") + "!";
-    safeImage($("sideAvatar"), currentProfile);
-    $("sideName").textContent = currentProfile.name || "BanglaGram User";
-  } catch (error) {
-    console.warn("Profile not ready:", error);
-  }
-  await loadPosts(true);
-}, () => {
-  currentProfile = null;
-  $("feed").innerHTML = "";
-});
-
-document.querySelectorAll(".nav-item").forEach((button) => {
-  button.addEventListener("click", () => showView(button.dataset.view));
-});
-document.querySelectorAll("[data-go]").forEach((button) => {
-  button.addEventListener("click", () => showView(button.dataset.go));
-});
-
-let searchDelay;
-$("userSearch")?.addEventListener("input", (event) => {
-  clearTimeout(searchDelay);
-  const value = event.target.value;
-  searchDelay = setTimeout(() => runUserSearch(value), 350);
-});
-
-$("postBtn")?.addEventListener("click", async () => {
-  const button = $("postBtn");
-  try {
-    button.disabled = true;
-    await createPost($("postText").value, $("imageUrl").value);
-    $("postText").value = "";
-    $("imageUrl").value = "";
+    myProfile = await getMyProfile();
+    $("welcomeName").textContent = "Welcome back, " + (myProfile.name || "friend") + "!";
+    $("sideName").textContent = myProfile.name || "BanglaGram member";
+    $("sideHandle").textContent = "@" + (myProfile.name || "member").toLowerCase().replace(/[^a-z0-9]+/g,"");
+    setAvatar($("sideAvatar"), myProfile);
     await loadPosts(true);
-    toast("Your post is live!");
-  } catch (error) {
-    toast(error.message);
-  } finally {
-    button.disabled = false;
-  }
-});
+    await loadNotices();
+  } catch(e) { console.error(e); }
+}, () => { $("feed").innerHTML = ""; });
 
-$("loadMoreBtn")?.addEventListener("click", () => loadPosts(false));
-$("saveProfileBtn")?.addEventListener("click", async () => {
-  const button = $("saveProfileBtn");
+document.querySelectorAll(".nav-item").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showView(b.dataset.go)));
+$("brandHome").addEventListener("click", e => { e.preventDefault(); showView("home"); });
+$("sidebarProfile").addEventListener("click", () => openProfile(auth.currentUser.uid));
+window.addEventListener("bg:profile", e => openProfile(e.detail));
+$("userSearch").addEventListener("input", e => { clearTimeout(searchTimer); const term=e.target.value; searchTimer=setTimeout(()=>loadExplore(term),250); });
+$("backFromProfile").addEventListener("click", () => showView(previousView === "profile" ? "home" : previousView));
+$("backFromConnections").addEventListener("click", () => openProfile(viewedUid, false));
+$("followersBtn").addEventListener("click", () => showConnections("followers"));
+$("followingBtn").addEventListener("click", () => showConnections("following"));
+$("profileFollowBtn").addEventListener("click", async () => {
+  const btn=$("profileFollowBtn"); btn.disabled=true;
   try {
-    button.disabled = true;
-    await updateMyProfile($("editName").value, $("editBio").value, $("editPhoto").value);
-    $("profileMessage").textContent = "Profile updated successfully!";
-    toast("Profile saved!");
-    await loadMyProfile();
-  } catch (error) {
-    $("profileMessage").textContent = error.message;
-  } finally {
-    button.disabled = false;
-  }
+    if(await isFollowing(viewedUid)){await unfollowUser(viewedUid);btn.textContent="＋ Follow";btn.className="primary-btn follow-profile-btn";}
+    else{await followUser(viewedUid);btn.textContent="Following ✓";btn.className="soft-btn follow-profile-btn";}
+    await refreshProfileCounts();
+  }catch(e){toast(e.message);}finally{btn.disabled=false;}
 });
-$("followersBtn")?.addEventListener("click", () => showConnections("followers"));
-$("followingBtn")?.addEventListener("click", () => showConnections("following"));
+$("saveProfileBtn").addEventListener("click", async () => {
+  try { await updateMyProfile($("editName").value,$("editBio").value,$("editPhoto").value); toast("Profile updated!"); myProfile=await getMyProfile(); $("sideName").textContent=myProfile.name; setAvatar($("sideAvatar"),myProfile); await openProfile(auth.currentUser.uid,false); }
+  catch(e){$("profileMessage").textContent=e.message;}
+});
+document.querySelectorAll(".composer-tab").forEach(btn=>btn.addEventListener("click",()=>{
+  composerKind=btn.dataset.kind;document.querySelectorAll(".composer-tab").forEach(b=>b.classList.toggle("active",b===btn));
+  $("mediaFile").accept=composerKind==="picture"?"image/*":composerKind==="video"?"video/*":"image/*,video/*";
+  $("uploadLabel").textContent=composerKind==="post"?"Choose a picture or video":composerKind==="picture"?"Choose a picture":"Choose a video";
+}));
+$("mediaFile").addEventListener("change",e=>{
+  selectedFile=e.target.files?.[0]||null;
+  if(selectedFile && composerKind==="picture" && !selectedFile.type.startsWith("image/")){toast("Please select an image.");selectedFile=null;e.target.value="";}
+  if(selectedFile && composerKind==="video" && !selectedFile.type.startsWith("video/")){toast("Please select a video.");selectedFile=null;e.target.value="";}
+  previewSelected();
+});
+$("postBtn").addEventListener("click",async()=>{
+  const btn=$("postBtn");btn.disabled=true;
+  try{
+    let media={mediaUrl:"",mediaType:""};
+    if(selectedFile){$("uploadStatus").textContent="Uploading: 0%";media=await uploadMedia(selectedFile,p=>$("uploadStatus").textContent=`Uploading: ${p}%`);}
+    await createPost($("postText").value,media.mediaUrl,media.mediaType);
+    $("postText").value="";$("mediaFile").value="";selectedFile=null;previewSelected();$("uploadStatus").textContent="";
+    showView("home");setPostTarget("feed");await loadPosts(true);toast("Your post is published!");
+  }catch(e){console.error(e);toast(e.message);}
+  finally{btn.disabled=false;}
+});
+$("loadMoreBtn").addEventListener("click",()=>loadPosts(false));
+$("closeLightbox").addEventListener("click",()=>{$("mediaLightbox").hidden=true;$("lightboxContent").innerHTML="";});
+$("mediaLightbox").addEventListener("click",e=>{if(e.target===$("mediaLightbox")){$("mediaLightbox").hidden=true;$("lightboxContent").innerHTML="";}});
 
