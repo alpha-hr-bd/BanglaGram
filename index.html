@@ -2,202 +2,140 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="BanglaGram — Connect, share and discover Bangladesh.">
-  <title>BanglaGram — Share your world</title>
+  <meta name="description" content="BanglaGram — Share moments and connect with Bangladesh.">
+  <title>BanglaGram — Your Community</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="BanglaGram home">
-      <span class="brand-mark">B</span>
-      <span>Bangla<span class="brand-blue">Gram</span></span>
-    </a>
-    <div class="top-actions">
-      <span class="online-dot"></span>
-      <span class="top-caption">Connect with Bangladesh</span>
-      <button id="logoutBtn" class="logout-btn" hidden>Log out</button>
+<header class="topbar">
+  <a class="brand" href="#" id="brandHome"><span class="brand-mark">B</span><span>Bangla<span class="brand-blue">Gram</span></span></a>
+  <div class="header-right"><span class="online-dot"></span><span class="top-caption">Connect with Bangladesh</span><button id="logoutBtn" class="logout-btn" hidden>Log out</button></div>
+</header>
+
+<main class="page-shell">
+  <section id="authSection" class="auth-layout">
+    <div class="hero-copy">
+      <span class="eyebrow">YOUR PEOPLE. YOUR MOMENTS.</span>
+      <h1>Every moment<br>has a <span>story.</span></h1>
+      <p>Share your moments, discover people and stay connected with Bangladesh.</p>
+      <div class="hero-points"><span>✦ Share moments</span><span>✦ Meet people</span><span>✦ Build connections</span></div>
     </div>
-  </header>
+    <div class="auth-card">
+      <div class="auth-logo">B</div><h2>Welcome to BanglaGram</h2><p class="muted">Create an account or log in to continue.</p>
+      <div id="signupFields"><label for="name">Your name</label><input id="name" autocomplete="name" placeholder="Enter your name"></div>
+      <label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+      <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+      <button id="signupBtn" class="primary-btn full-btn">Create account</button>
+      <button id="loginBtn" class="soft-btn full-btn">Log in</button>
+      <button id="resetBtn" class="text-btn">Forgot password?</button>
+      <p id="authMessage" class="message" role="status"></p><p class="tiny-note">Use BanglaGram respectfully and kindly.</p>
+    </div>
+  </section>
 
-  <main class="page-shell">
-    <section id="authSection" class="auth-layout">
-      <div class="hero-copy">
-        <span class="eyebrow">YOUR PEOPLE. YOUR MOMENTS.</span>
-        <h1>Every moment<br>has a <span>story.</span></h1>
-        <p>Share your moments, discover people and stay connected with Bangladesh.</p>
-        <div class="hero-points">
-          <span>✦ Share moments</span>
-          <span>✦ Meet people</span>
-          <span>✦ Build connections</span>
-        </div>
-      </div>
+  <section id="appSection" hidden>
+    <div class="app-grid">
+      <aside class="sidebar panel">
+        <button class="sidebar-user profile-link" id="sidebarProfile">
+          <img id="sideAvatar" class="avatar avatar-lg" src="https://ui-avatars.com/api/?name=BG" alt="Your profile">
+          <span><strong id="sideName">BanglaGram User</strong><small id="sideHandle">@member</small></span>
+        </button>
+        <nav class="main-nav" aria-label="Main navigation">
+          <button class="nav-item active" data-view="home"><span>⌂</span> Home</button>
+          <button class="nav-item" data-view="explore"><span>⌕</span> Explore</button>
+          <button class="nav-item" data-view="profile"><span>◎</span> My profile</button>
+          <button class="nav-item" data-view="notifications"><span>♧</span> Notifications <b id="notificationBadge" class="notification-badge" hidden>0</b></button>
+        </nav>
+        <div class="sidebar-note"><span class="note-icon">✦</span><strong>Stay connected</strong><p>Good things happen when people connect.</p></div>
+        <p class="sidebar-credit">Made with care by <b>Alpha.HR</b></p>
+      </aside>
 
-      <div class="auth-card">
-        <div class="auth-logo">B</div>
-        <h2>Welcome to BanglaGram</h2>
-        <p class="muted">Create an account or log in to continue.</p>
-        <div id="signupFields">
-          <label for="name">Your name</label>
-          <input id="name" autocomplete="name" placeholder="Enter your name">
-        </div>
-        <label for="email">Email address</label>
-        <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
-        <button id="signupBtn" class="primary-btn full-btn">Create account</button>
-        <button id="loginBtn" class="soft-btn full-btn">Log in</button>
-        <button id="resetBtn" class="text-btn">Forgot password?</button>
-        <p id="authMessage" class="message" role="status"></p>
-        <p class="tiny-note">By continuing, you agree to use BanglaGram respectfully.</p>
-      </div>
-    </section>
+      <section class="content-column">
+        <section id="homeView" class="view-section">
+          <div class="welcome-banner"><div><span class="eyebrow">YOUR COMMUNITY</span><h1 id="welcomeName">Welcome back!</h1><p>Your corner of Bangladesh starts here.</p></div><div class="banner-art">✦</div></div>
 
-    <section id="appSection" hidden>
-      <div class="app-grid">
-        <aside class="sidebar panel">
-          <div class="sidebar-user">
-            <img id="sideAvatar" class="avatar avatar-lg" src="https://ui-avatars.com/api/?name=BG&background=e4f4ff&color=168bd2" alt="Your profile">
-            <div>
-              <strong id="sideName">BanglaGram User</strong>
-              <span id="sideHandle">@member</span>
+          <section class="create-post panel">
+            <div class="section-heading"><div><h2>Create something</h2><p class="muted">Share a post, picture or video.</p></div><span class="mini-pill">✦ Your story</span></div>
+            <div class="composer-tabs">
+              <button class="composer-tab active" data-kind="post">✎ Post</button>
+              <button class="composer-tab" data-kind="picture">▧ Picture</button>
+              <button class="composer-tab" data-kind="video">▶ Video</button>
             </div>
-          </div>
-          <nav class="main-nav" aria-label="Main navigation">
-            <button class="nav-item active" data-view="home"><span>⌂</span> Home</button>
-            <button class="nav-item" data-view="explore"><span>⌕</span> Explore people</button>
-            <button class="nav-item" data-view="profile"><span>◎</span> My profile</button>
-            <button class="nav-item" data-view="notifications"><span>♧</span> Notifications</button>
-          </nav>
-          <div class="sidebar-note">
-            <span class="note-icon">✦</span>
-            <strong>Stay connected</strong>
-            <p>Good things happen when people connect.</p>
-          </div>
-          <p class="sidebar-credit">Made with care by <b>Alpha.HR</b></p>
-        </aside>
-
-        <section class="content-column">
-          <section id="homeView" class="view-section">
-            <div class="welcome-banner">
-              <div>
-                <span class="eyebrow">YOUR COMMUNITY</span>
-                <h1 id="welcomeName">Welcome back!</h1>
-                <p>Your corner of Bangladesh starts here.</p>
-              </div>
-              <div class="banner-art" aria-hidden="true">✦</div>
-            </div>
-
-            <section class="create-post panel">
-              <div class="section-heading">
-                <div>
-                  <h2>Create a post</h2>
-                  <p class="muted">Share something with your community.</p>
-                </div>
-                <span class="mini-pill">✦ Your story</span>
-              </div>
-              <textarea id="postText" maxlength="2000" placeholder="What's happening?"></textarea>
-              <input id="imageUrl" type="url" placeholder="Image URL (optional)">
-              <div class="composer-bottom">
-                <span class="muted small-text">Be kind. Keep it positive.</span>
-                <button id="postBtn" class="primary-btn">Publish post <span>↗</span></button>
-              </div>
-            </section>
-
-            <div class="feed-heading">
-              <div><h2>Your feed</h2><p class="muted">Fresh moments from the community</p></div>
-              <span class="live-label"><i></i> COMMUNITY</span>
-            </div>
-            <div id="feed" class="feed-list"></div>
-            <button id="loadMoreBtn" class="soft-btn load-more">Load more posts</button>
+            <textarea id="postText" maxlength="2000" placeholder="What's happening?"></textarea>
+            <label class="upload-label" for="mediaFile"><span id="uploadIcon">＋</span><span id="uploadLabel">Choose a picture or video</span><input id="mediaFile" type="file" accept="image/*,video/*"></label>
+            <div id="mediaPreview" class="media-preview" hidden></div>
+            <div class="composer-bottom"><span class="muted small-text">Images and videos up to 50 MB.</span><button id="postBtn" class="primary-btn">Publish <span>↗</span></button></div>
+            <p id="uploadStatus" class="message"></p>
           </section>
 
-          <section id="exploreView" class="view-section" hidden>
-            <div class="page-heading">
-              <span class="eyebrow">FIND YOUR PEOPLE</span>
-              <h1>Explore <span>community.</span></h1>
-              <p class="muted">Search BanglaGram members and follow people you know.</p>
-            </div>
-            <div class="search-box panel">
-              <span>⌕</span>
-              <input id="userSearch" type="search" placeholder="Search people by name...">
-            </div>
-            <div id="peopleResults" class="people-grid">
-              <div class="empty-state">Start typing a name to discover people.</div>
-            </div>
-          </section>
-
-          <section id="profileView" class="view-section" hidden>
-            <div class="page-heading">
-              <span class="eyebrow">YOUR SPACE</span>
-              <h1>My <span>profile.</span></h1>
-            </div>
-            <div class="profile-card panel">
-              <div class="profile-cover"></div>
-              <div class="profile-main">
-                <img id="profileAvatar" class="avatar avatar-xl" src="https://ui-avatars.com/api/?name=BG&background=e4f4ff&color=168bd2" alt="Profile photo">
-                <div class="profile-details">
-                  <h2 id="profileName">Your name</h2>
-                  <p id="profileBio" class="muted">Add a short bio about yourself.</p>
-                  <div class="profile-stats">
-                    <button id="followersBtn" class="stat-button"><strong id="followersCount">0</strong><span>Followers</span></button>
-                    <button id="followingBtn" class="stat-button"><strong id="followingCount">0</strong><span>Following</span></button>
-                  </div>
-                </div>
-              </div>
-              <div class="profile-edit">
-                <h3>Edit profile</h3>
-                <label for="editName">Display name</label>
-                <input id="editName" maxlength="40" placeholder="Your name">
-                <label for="editBio">Bio</label>
-                <textarea id="editBio" maxlength="160" placeholder="Write a little about yourself..."></textarea>
-                <label for="editPhoto">Profile photo URL</label>
-                <input id="editPhoto" type="url" placeholder="https://example.com/photo.jpg">
-                <button id="saveProfileBtn" class="primary-btn">Save profile</button>
-                <p id="profileMessage" class="message"></p>
-              </div>
-            </div>
-            <div class="feed-heading"><div><h2>Your posts</h2><p class="muted">Posts shared from your account</p></div></div>
-            <div id="myPosts" class="feed-list"></div>
-          </section>
-
-          <section id="notificationsView" class="view-section" hidden>
-            <div class="page-heading">
-              <span class="eyebrow">STAY IN THE LOOP</span>
-              <h1>Your <span>notifications.</span></h1>
-              <p class="muted">Recent activity from your community.</p>
-            </div>
-            <div id="notificationList" class="panel notification-list">
-              <div class="empty-state">Your notifications will appear here.</div>
-            </div>
-          </section>
+          <div class="feed-heading"><div><h2>Home Feed</h2><p class="muted">Latest moments from BanglaGram</p></div><span class="live-label"><i></i> LIVE COMMUNITY</span></div>
+          <div id="feed" class="feed-list"></div><button id="loadMoreBtn" class="soft-btn load-more">Load more posts</button>
         </section>
 
-        <aside class="rightbar">
-          <div class="panel side-card">
-            <span class="eyebrow">A LITTLE REMINDER</span>
-            <h3>Make someone's day.</h3>
-            <p class="muted">A kind comment or a friendly follow can make this community better.</p>
-            <button class="soft-btn full-btn" data-go="explore">Discover people</button>
-          </div>
-          <div class="panel side-card community-card">
-            <div class="community-icon">🇧🇩</div>
-            <h3>BanglaGram</h3>
-            <p class="muted">A community made for sharing moments and building connections.</p>
-            <span class="version-tag">ALPHA.HR • COMMUNITY</span>
-          </div>
-        </aside>
-      </div>
-    </section>
-  </main>
+        <section id="exploreView" class="view-section" hidden>
+          <div class="page-heading"><span class="eyebrow">FIND YOUR PEOPLE</span><h1>Explore <span>community.</span></h1><p class="muted">Discover members and visit their profiles.</p></div>
+          <div class="search-box panel"><span>⌕</span><input id="userSearch" type="search" placeholder="Search people by name..."></div>
+          <div id="peopleResults" class="people-grid"><div class="empty-state">Loading members...</div></div>
+        </section>
 
-  <footer class="footer">BanglaGram © 2026 <span>•</span> Developed by Alpha.HR</footer>
-  <div id="toast" class="toast" role="status"></div>
-  <script type="module" src="js/app.js"></script>
+        <section id="profileView" class="view-section" hidden>
+          <button id="backFromProfile" class="text-btn back-btn">← Back</button>
+          <div class="profile-card panel">
+            <div class="profile-cover"></div>
+            <div class="profile-main">
+              <img id="profileAvatar" class="avatar avatar-xl" src="https://ui-avatars.com/api/?name=BG" alt="Profile photo">
+              <div class="profile-details"><h2 id="profileName">Member</h2><p id="profileHandle" class="muted">@member</p><p id="profileBio" class="muted">BanglaGram member</p>
+                <div class="profile-stats">
+                  <button id="followersBtn" class="stat-button"><strong id="followersCount">0</strong><span>Followers</span></button>
+                  <button id="followingBtn" class="stat-button"><strong id="followingCount">0</strong><span>Following</span></button>
+                  <strong id="profilePostCount" class="post-count">0 Posts</strong>
+                </div>
+                <button id="profileFollowBtn" class="primary-btn follow-profile-btn" hidden>＋ Follow</button>
+              </div>
+            </div>
+            <div id="profileEdit" class="profile-edit">
+              <h3>Edit your profile</h3>
+              <label for="editName">Display name</label><input id="editName" maxlength="40" placeholder="Your name">
+              <label for="editBio">Bio</label><textarea id="editBio" maxlength="160" placeholder="Write a little about yourself..."></textarea>
+              <label for="editPhoto">Profile photo URL</label><input id="editPhoto" type="url" placeholder="https://example.com/photo.jpg">
+              <button id="saveProfileBtn" class="primary-btn">Save profile</button><p id="profileMessage" class="message"></p>
+            </div>
+          </div>
+          <div class="feed-heading"><div><h2 id="profilePostsTitle">Posts</h2><p class="muted">Public posts by this member</p></div></div>
+          <div id="profilePosts" class="feed-list"></div>
+        </section>
+
+        <section id="connectionsView" class="view-section" hidden>
+          <button id="backFromConnections" class="text-btn back-btn">← Back to profile</button>
+          <div class="page-heading"><span class="eyebrow">COMMUNITY</span><h1 id="connectionsTitle">Connections</h1></div>
+          <div id="connectionsList" class="people-grid"></div>
+        </section>
+
+        <section id="notificationsView" class="view-section" hidden>
+          <div class="page-heading"><span class="eyebrow">STAY IN THE LOOP</span><h1>Your <span>notifications.</span></h1><p class="muted">Likes, comments and new followers.</p></div>
+          <div id="notificationList" class="panel notification-list"><div class="empty-state">Loading notifications...</div></div>
+        </section>
+      </section>
+
+      <aside class="rightbar">
+        <div class="panel side-card"><span class="eyebrow">A LITTLE REMINDER</span><h3>Make someone's day.</h3><p class="muted">A kind comment or friendly follow makes this community better.</p><button class="soft-btn full-btn" data-go="explore">Discover people</button></div>
+        <div class="panel side-card community-card"><div class="community-icon">🇧🇩</div><h3>BanglaGram</h3><p class="muted">A community made for sharing moments and building connections.</p><span class="version-tag">ALPHA.HR • COMMUNITY</span></div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div id="mediaLightbox" class="lightbox" hidden>
+  <button id="closeLightbox" class="lightbox-close" aria-label="Close">×</button>
+  <div id="lightboxContent" class="lightbox-content"></div>
+</div>
+<div id="toast" class="toast" role="status"></div>
+<footer class="footer">BanglaGram © 2026 <span>•</span> Developed by Alpha.HR</footer>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
 
